@@ -1,0 +1,30 @@
+@import "../src/ui/tokens/primitives.css";
+@import "../src/ui/tokens/semantic.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+  }
+
+  body {
+    background-color: hsl(var(--color-background));
+    color: hsl(var(--color-text-primary));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
+
+  /* Visible, consistent focus for keyboard users across the app. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--color-focus));
+    outline-offset: 2px;
+  }
+}

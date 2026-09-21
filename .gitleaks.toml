@@ -1,0 +1,19 @@
+# Gitleaks configuration for Ndalo Bloom.
+#
+# Extends the default gitleaks ruleset (broad coverage of common secret formats)
+# and adds a narrow allowlist for documented placeholder files.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow documented placeholders and non-secret sample values."
+paths = [
+  # .env.example contains only placeholder values, never real credentials.
+  '''\.env\.example$''',
+]
+regexes = [
+  # Common obvious placeholders used in .env.example / docs.
+  '''generate-a-long-random-secret''',
+  '''user:password@host''',
+]

@@ -1,0 +1,39 @@
+{
+  // Dependency security gate (CI).
+  //
+  // Fails the build on HIGH or CRITICAL advisories. Any NEW or unlisted advisory at
+  // this level will fail CI — the gate is real. The allowlist below contains only
+  // advisories that have been explicitly triaged as build-time-only tooling inside a
+  // pinned dependency, with a remediation path recorded as technical debt.
+  "high": true,
+  "critical": true,
+  "report-type": "important",
+
+  // Production dependencies only. Dev/build tooling (Storybook, Vite, etc.) is not
+  // shipped to customers; its advisories are tracked separately, not treated as a
+  // release-blocking runtime security gate.
+  "skip-dev": true,
+
+  // Allowlisted (triaged) advisories — TECHNICAL DEBT, each with a remediation path.
+  // These are transitive advisories inside pinned dependencies' own bundler/tooling
+  // chains; none is patchable without a major/breaking upgrade. They are revisited in
+  // the observability + launch-hardening follow-ups. Any advisory NOT listed here
+  // still fails the gate.
+  //
+  // postcss advisories (GHSA-qx2v-qp2m-jg93 / GHSA-6g55-p6wh-862q /
+  // GHSA-r28c-9q8g-f849 / GHSA-fxqj-rqcc-2cmp) are now RESOLVED at source: postcss is
+  // pinned to >=8.5.23 (above the highest affected range, <=8.5.22) directly and via an
+  // `overrides` entry that also upgrades the copy bundled by Next. They are intentionally
+  // NOT allowlisted so the gate re-checks them.
+  "allowlist": [
+    // rollup 4 path-traversal — only inside @sentry/nextjs's build-time bundler tooling
+    // (@sentry/nextjs > @sentry/webpack-plugin > ... > rollup). Build-time only, not
+    // shipped to production runtime. Fix requires @sentry/nextjs@10 (breaking). Tracked
+    // for the observability/launch-hardening upgrade.
+    "GHSA-mw96-cpmx-2vgc",
+
+    // @playwright/test > playwright — DEV/TEST tooling only (E2E runner). Never shipped
+    // to production runtime. Tracked to bump Playwright at launch hardening.
+    "GHSA-7mvr-c777-76hp",
+  ],
+}

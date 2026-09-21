@@ -1,0 +1,81 @@
+/**
+ * PRIMITIVE TOKENS
+ *
+ * Raw, brand-agnostic values. These are the single source of raw palette, spacing,
+ * type, radius, shadow, sizing and motion values. Components MUST NOT consume these
+ * directly — they consume SEMANTIC tokens (see semantic.css), which map onto these.
+ *
+ * Colours are stored as HSL channel triplets (H S% L%) so Tailwind can apply
+ * <alpha-value>. Example: --pink-500: 330 65% 60%;
+ */
+
+:root {
+  /* ---- Colour palette (primitives) ---- */
+  /* Brand pink ramp */
+  --pink-50: 340 60% 97%;
+  --pink-100: 338 60% 93%;
+  --pink-200: 336 60% 86%;
+  --pink-300: 334 62% 78%;
+  --pink-400: 332 63% 69%;
+  --pink-500: 330 64% 60%;
+  --pink-600: 328 60% 50%;
+  --pink-700: 326 58% 41%;
+
+  /* Neutral ramp (warm-leaning for editorial luxury) */
+  --neutral-0: 0 0% 100%;
+  --neutral-50: 30 20% 98%;
+  --neutral-100: 30 16% 95%;
+  --neutral-200: 28 14% 89%;
+  --neutral-300: 26 12% 80%;
+  --neutral-400: 24 10% 64%;
+  --neutral-500: 24 8% 46%;
+  --neutral-600: 24 9% 34%;
+  --neutral-700: 24 10% 24%;
+  --neutral-800: 24 12% 16%;
+  --neutral-900: 24 14% 10%;
+
+  /* Status ramps */
+  --green-500: 152 55% 40%;
+  --amber-500: 38 88% 50%;
+  --red-500: 358 68% 52%;
+
+  /* ---- Spacing scale (primitives) ---- */
+  --space-0: 0rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* ---- Typography scale (primitives) ---- */
+  --font-family-heading: "Georgia", "Times New Roman", serif;
+  --font-family-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.75rem;
+  --font-size-2xl: 2.5rem;
+  --font-size-3xl: 3.5rem;
+
+  /* ---- Radius scale (primitives) ---- */
+  --radius-sm-primitive: 0.25rem;
+  --radius-md-primitive: 0.5rem;
+  --radius-lg-primitive: 0.875rem;
+  --radius-xl-primitive: 1.5rem;
+
+  /* ---- Shadow scale (primitives) ---- */
+  --shadow-sm-primitive: 0 1px 2px hsl(24 14% 10% / 0.06);
+  --shadow-md-primitive: 0 4px 12px hsl(24 14% 10% / 0.08);
+  --shadow-lg-primitive: 0 12px 32px hsl(24 14% 10% / 0.12);
+
+  /* ---- Motion (primitives) ---- */
+  --motion-fast-primitive: 120ms;
+  --motion-base-primitive: 200ms;
+  --motion-slow-primitive: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}

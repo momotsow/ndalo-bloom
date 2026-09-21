@@ -1,0 +1,65 @@
+/**
+ * SEMANTIC TOKENS
+ *
+ * Meaning-based tokens mapped onto primitive tokens. Components consume ONLY these.
+ * Rebranding or theming is achieved by re-mapping these values, without touching
+ * individual components (FR-5).
+ *
+ * Pink is exposed here as `accent` — an accent within the semantic system, not a
+ * hard-coded palette value scattered through components.
+ */
+
+:root {
+  /* Surfaces & background */
+  --color-background: var(--neutral-50);
+  --color-surface: var(--neutral-0);
+  --color-surface-muted: var(--neutral-100);
+  --color-border: var(--neutral-200);
+
+  /* Text */
+  --color-text-primary: var(--neutral-900);
+  --color-text-secondary: var(--neutral-600);
+  --color-text-muted: var(--neutral-400);
+
+  /* Accent (brand pink as an accent signal) */
+  --color-accent: var(--pink-500);
+  --color-accent-foreground: var(--neutral-0);
+
+  /* Focus */
+  --color-focus: var(--pink-600);
+
+  /* Status */
+  --color-success: var(--green-500);
+  --color-warning: var(--amber-500);
+  --color-error: var(--red-500);
+
+  /* Radius (semantic aliases) */
+  --radius-sm: var(--radius-sm-primitive);
+  --radius-md: var(--radius-md-primitive);
+  --radius-lg: var(--radius-lg-primitive);
+  --radius-xl: var(--radius-xl-primitive);
+  --radius-full: 9999px;
+
+  /* Shadow (semantic aliases) */
+  --shadow-sm: var(--shadow-sm-primitive);
+  --shadow-md: var(--shadow-md-primitive);
+  --shadow-lg: var(--shadow-lg-primitive);
+
+  /* Typography (semantic aliases) */
+  --font-heading: var(--font-family-heading);
+  --font-body: var(--font-family-body);
+
+  /* Motion (semantic aliases) */
+  --motion-fast: var(--motion-fast-primitive);
+  --motion-base: var(--motion-base-primitive);
+  --motion-slow: var(--motion-slow-primitive);
+}
+
+/* Respect reduced-motion at the token level so all motion is dampened consistently. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}

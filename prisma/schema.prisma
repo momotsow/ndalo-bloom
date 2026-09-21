@@ -1,0 +1,248 @@
+// Ndalo Bloom — Prisma schema (Spec 2: Catalogue & Product Experience)
+//
+// Scope: catalogue only. NO cart/order/payment/review/promotion models, and NO
+// operational inventory/availability table — availability is derived at read time
+// from a read-only stock source (see src/data/stock-availability-provider.ts).
+// Money is stored in integer minor units (ZAR cents).
+//
+// The Foundation infrastructure-only `HealthCheck` model has been superseded by real
+// catalogue models; the health check uses `SELECT 1` and needs no model.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProductImageRole {
+  HERO
+  DETAIL
+  LIFESTYLE
+  UNBOXING
+}
+
+enum ProductRelationshipType {
+  COMPLEMENTARY
+  FREQUENTLY_BOUGHT_TOGETHER
+  RELATED
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  slug     String  @unique
+  name     String
+  parentId String?
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model Collection {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  heroImageId String?
+
+  products ProductCollection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  story          String?
+  description    String?
+  status         ProductStatus @default(DRAFT)
+  categoryId     String
+  seoTitle       String?
+  seoDescription String?
+
+  category      Category            @relation(fields: [categoryId], references: [id])
+  variants      ProductVariant[]
+  images        ProductImage[]
+  collections   ProductCollection[]
+  ingredients   ProductIngredient[]
+  benefits      ProductBenefit[]
+  scents        ProductScent[]
+  moods         ProductMood[]
+  occasions     ProductOccasion[]
+  relationsFrom ProductRelationship[] @relation("RelationshipSource")
+  relationsTo   ProductRelationship[] @relation("RelationshipTarget")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+}
+
+model ProductVariant {
+  id         String  @id @default(cuid())
+  productId  String
+  name       String
+  sku        String  @unique
+  priceCents Int
+  position   Int     @default(0)
+
+  // `stockKey` links a variant to a trusted, read-only stock source (external to
+  // Spec 2). It is NOT an operational quantity and there is no inventory table here.
+  stockKey String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String           @id @default(cuid())
+  productId String
+  mediaRef  String // Cloudinary public id (delivered via MediaProvider)
+  alt       String // REQUIRED for accessibility
+  role      ProductImageRole @default(DETAIL)
+  position  Int              @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Ingredient {
+  id       String              @id @default(cuid())
+  slug     String              @unique
+  name     String
+  products ProductIngredient[]
+}
+
+model Benefit {
+  id       String           @id @default(cuid())
+  slug     String           @unique
+  name     String
+  products ProductBenefit[]
+}
+
+model Scent {
+  id       String         @id @default(cuid())
+  slug     String         @unique
+  name     String
+  products ProductScent[]
+}
+
+model Mood {
+  id       String        @id @default(cuid())
+  slug     String        @unique
+  name     String
+  products ProductMood[]
+}
+
+model Occasion {
+  id       String            @id @default(cuid())
+  slug     String            @unique
+  name     String
+  products ProductOccasion[]
+}
+
+// ---- Join tables (explicit M:N with composite PKs) ----
+
+model ProductCollection {
+  productId    String
+  collectionId String
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+  @@index([collectionId])
+}
+
+model ProductIngredient {
+  productId    String
+  ingredientId String
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([productId, ingredientId])
+  @@index([ingredientId])
+}
+
+model ProductBenefit {
+  productId String
+  benefitId String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  benefit Benefit @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+
+  @@id([productId, benefitId])
+  @@index([benefitId])
+}
+
+model ProductScent {
+  productId String
+  scentId   String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scent   Scent   @relation(fields: [scentId], references: [id], onDelete: Cascade)
+
+  @@id([productId, scentId])
+  @@index([scentId])
+}
+
+model ProductMood {
+  productId String
+  moodId    String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mood    Mood    @relation(fields: [moodId], references: [id], onDelete: Cascade)
+
+  @@id([productId, moodId])
+  @@index([moodId])
+}
+
+model ProductOccasion {
+  productId  String
+  occasionId String
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  occasion Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, occasionId])
+  @@index([occasionId])
+}
+
+model ProductRelationship {
+  id               String                  @id @default(cuid())
+  productId        String
+  relatedProductId String
+  type             ProductRelationshipType
+
+  product        Product @relation("RelationshipSource", fields: [productId], references: [id], onDelete: Cascade)
+  relatedProduct Product @relation("RelationshipTarget", fields: [relatedProductId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([productId, relatedProductId, type])
+  @@index([productId])
+  @@index([relatedProductId])
+}

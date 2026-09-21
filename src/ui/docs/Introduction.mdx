@@ -1,0 +1,36 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Design System/Introduction" />
+
+# Ndalo Bloom Design System
+
+The foundational, framework-agnostic building blocks for Ndalo Bloom. Everything here
+is commerce-agnostic — product, cart, checkout, and AI components are built in later
+Specs on top of these primitives.
+
+## Token architecture
+
+Two tiers (see `src/ui/tokens`):
+
+- **Primitive tokens** — raw palette, spacing, type, radius, shadow, sizing, and motion
+  values. Not consumed directly by components.
+- **Semantic tokens** — meaning-based tokens (`background`, `surface`, `text-primary`,
+  `accent`, `focus`, `success`, `warning`, `error`, interactive states) mapped onto the
+  primitives. Components consume ONLY these.
+
+Ndalo Bloom's pink is exposed as the `accent` semantic token — an accent signal, not a
+hard-coded colour scattered across components. Rebranding or theming is achieved by
+re-mapping semantic tokens, without editing individual components.
+
+## Accessibility
+
+Every interactive primitive is tested against the accessibility criteria applicable to
+its semantics (keyboard, focus visibility, accessible name, role, disabled/loading/error
+states where supported, reduced motion, contrast). Automated axe checks run in Storybook
+(a11y addon) and in unit tests (`jest-axe`) — but axe alone does not prove accessibility;
+manual assistive-technology testing remains part of the Definition of Done.
+
+## Performance
+
+Primitives are server-compatible by default. Client components are used only where
+interaction requires them (Dialog, Drawer, Toast, and interactive form controls).
