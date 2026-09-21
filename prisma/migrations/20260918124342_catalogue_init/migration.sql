@@ -1,4 +1,4 @@
-﻿-- Enable trigram matching for fuzzy catalogue search (Spec 2, Task 5 / FR-18).
+-- Enable trigram matching for fuzzy catalogue search (Spec 2, Task 5 / FR-18).
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- CreateEnum
