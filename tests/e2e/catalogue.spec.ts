@@ -37,15 +37,20 @@ test.describe("Catalogue & Product Experience", () => {
   // Uses the seeded product with a known related product so the related step never
   // skips. Canonical is verified as the landed URL (see expectOnCanonicalProductUrl).
   test("A: shop → product → related product → canonical URL", async ({ page }) => {
+    // Hop 1: shop → open the first product → land on a canonical /products/[slug] URL.
     await page.goto("/shop");
     await expect(page.getByRole("heading", { level: 1, name: "Shop" })).toBeVisible();
-
-    // Open the first product from the grid.
     await page.locator('a[href*="/products/"]').first().click();
     await page.waitForURL(/\/products\/[^/?#]+$/);
     await expectOnCanonicalProductUrl(page);
 
-    // The related module MUST be present and contain at least one product link.
+    // Hop 2: product → related product → canonical URL.
+    //
+    // The related module only renders for products that actually have a relationship.
+    // Shop ordering is newest-first, so the first grid item is not guaranteed to have
+    // one. Use the seeded product that deterministically HAS a related product (see
+    // prisma/seed.ts) so this hop is stable and never skips.
+    await page.goto(`/products/${SEEDED_PRODUCT_SLUG}`);
     await expect(
       page.getByRole("heading", { name: "Complete your ritual" }),
     ).toBeVisible();
