@@ -9,9 +9,8 @@ const nextConfig = {
       { protocol: "https", hostname: "picsum.photos" },
     ],
   },
-  experimental: {
-    typedRoutes: true,
-  },
+  // typedRoutes moved out of `experimental` in Next 15.5.
+  typedRoutes: true,
   eslint: {
     // Linting is a dedicated CI quality gate (`npm run lint`), run separately from
     // the build. Disabling the build-time pass avoids duplicate/inconsistent lint
