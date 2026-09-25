@@ -17,12 +17,11 @@ describe("ProductCard", () => {
   it("links to the canonical /products/[slug] and shows the name + price", () => {
     render(<ProductCard product={product} />);
     const links = screen.getAllByRole("link");
-    // typedRoutes may render the object href as /products/[slug]?slug=... ; assert the
-    // link targets the products route and carries the canonical slug.
-    const productLink = links.find((a) => {
-      const href = a.getAttribute("href") ?? "";
-      return href.includes("/products/") && href.includes("the-exhale-ritual-1");
-    });
+    // The href MUST be the interpolated canonical path /products/<slug> — NOT the route
+    // template /products/[slug]?slug=... (that regression broke click-through navigation).
+    const productLink = links.find(
+      (a) => a.getAttribute("href") === "/products/the-exhale-ritual-1",
+    );
     expect(productLink).toBeTruthy();
     expect(screen.getByText("The Exhale Ritual")).toBeInTheDocument();
     expect(screen.getByText(/R\s?249/)).toBeInTheDocument();

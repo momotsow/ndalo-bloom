@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { Link } from "@/ui/primitives/link";
 import { Image } from "@/ui/primitives/image";
 import { Text } from "@/ui/primitives/layout";
@@ -18,11 +19,22 @@ export interface ProductCardData {
   readonly imageUrl: string | null;
 }
 
+/**
+ * Build the canonical product href as an INTERPOLATED path (e.g. /products/my-slug).
+ * The object form `{ pathname: "/products/[slug]", query: { slug } }` renders the route
+ * template literally under typedRoutes (/products/[slug]?slug=...), so we interpolate the
+ * dynamic segment directly and type it as a Route for typedRoutes.
+ */
+function productHref(slug: string): Route {
+  return `/products/${encodeURIComponent(slug)}` as Route;
+}
+
 export function ProductCard({ product }: { readonly product: ProductCardData }) {
+  const href = productHref(product.slug);
   return (
     <article className="group flex flex-col gap-3">
       <Link
-        href={{ pathname: "/products/[slug]", query: { slug: product.slug } }}
+        href={href}
         className="block overflow-hidden rounded-lg bg-surface-muted"
         aria-label={product.name}
       >
@@ -40,10 +52,7 @@ export function ProductCard({ product }: { readonly product: ProductCardData }) 
       </Link>
       <div className="flex items-center justify-between gap-2">
         <Text as="h3" className="font-heading text-base">
-          <Link
-            href={{ pathname: "/products/[slug]", query: { slug: product.slug } }}
-            className="text-text-primary no-underline hover:underline"
-          >
+          <Link href={href} className="text-text-primary no-underline hover:underline">
             {product.name}
           </Link>
         </Text>

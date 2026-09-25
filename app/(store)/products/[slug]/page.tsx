@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import { notFound } from "next/navigation";
 import { Container, Grid, Heading, Stack } from "@/ui/primitives/layout";
 import { Link } from "@/ui/primitives/link";
@@ -117,10 +117,7 @@ export default async function ProductPage({
           <li aria-hidden="true">/</li>
           <li>
             <Link
-              href={{
-                pathname: "/categories/[slug]",
-                query: { slug: product.category.slug },
-              }}
+              href={`/categories/${encodeURIComponent(product.category.slug)}` as Route}
             >
               {product.category.name}
             </Link>
