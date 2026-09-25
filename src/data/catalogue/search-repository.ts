@@ -1,7 +1,11 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/data/prisma-client";
-import { toTsRankWeightsArray, type SearchWeighting } from "@/domain/catalogue";
+import {
+  toTsRankWeightsArray,
+  toWeightLabels,
+  type SearchWeighting,
+} from "@/domain/catalogue";
 
 /**
  * Search repository — Postgres full-text + pg_trgm, the ONLY place search SQL lives.
@@ -35,17 +39,24 @@ export const searchRepository = {
     params: SearchParams,
   ): Promise<{ ids: string[]; total: number }> {
     const [wD, wC, wB, wA] = toTsRankWeightsArray(params.weighting);
+    // Derive the Postgres weight LABELS from the configured weighting so the
+    // highest-weighted field is actually tagged 'A' in the tsvector. This is what makes
+    // the weighting genuinely affect ranking (FR-19a) — changing the weighting reorders
+    // both the labels here and the ts_rank weights array below.
+    const labels = toWeightLabels(params.weighting);
     const q = params.text.trim();
 
-    // Weighted document: name(A-ish) > scent > benefit > description, mapped from the
-    // configured weighting via setweight. Aggregated scent/benefit text is joined in.
     const tsQuery = Prisma.sql`plainto_tsquery('english', ${q})`;
 
+    // setweight() requires a literal weight label ('A'..'D'), not a bind parameter.
+    // `toWeightLabels` only ever returns A/B/C/D from a closed set we control, so it is
+    // safe to inline via Prisma.raw (no user input reaches this).
+    const lit = (label: "A" | "B" | "C" | "D") => Prisma.raw(`'${label}'`);
     const weightedDoc = Prisma.sql`
-      setweight(to_tsvector('english', coalesce(p."name", '')), 'A') ||
-      setweight(to_tsvector('english', coalesce(scent_txt.txt, '')), 'B') ||
-      setweight(to_tsvector('english', coalesce(benefit_txt.txt, '')), 'C') ||
-      setweight(to_tsvector('english', coalesce(p."description", '')), 'D')
+      setweight(to_tsvector('english', coalesce(p."name", '')), ${lit(labels.name)}) ||
+      setweight(to_tsvector('english', coalesce(scent_txt.txt, '')), ${lit(labels.scent)}) ||
+      setweight(to_tsvector('english', coalesce(benefit_txt.txt, '')), ${lit(labels.benefit)}) ||
+      setweight(to_tsvector('english', coalesce(p."description", '')), ${lit(labels.description)})
     `;
 
     const filters: Prisma.Sql[] = [Prisma.sql`p."status" = 'ACTIVE'`];
@@ -66,10 +77,13 @@ export const searchRepository = {
     if (params.maxPriceCents !== undefined) {
       filters.push(Prisma.sql`price.min_price <= ${params.maxPriceCents}`);
     }
-    // Text match: FTS OR trigram similarity on name for fuzzy fallback.
+    // Text match: FTS, OR a trigram fuzzy fallback for typos. The fallback uses a
+    // strict whole-string similarity threshold so that a genuine near-match (a typo of
+    // the product name) still matches, but a query that merely shares a token amid other
+    // non-matching words does NOT leak a match (that must return no results).
     if (q.length > 0) {
       filters.push(Prisma.sql`(${weightedDoc} @@ ${tsQuery}
-        OR similarity(p."name", ${q}) > 0.2)`);
+        OR similarity(p."name", ${q}) > 0.4)`);
     }
     const whereSql = Prisma.join(filters, " AND ");
 
