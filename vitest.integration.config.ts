@@ -15,6 +15,10 @@ import { resolve } from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      // `server-only` guards server modules from client bundles; in a Node integration
+      // context there is no client bundle, so alias it to a no-op stub so the real
+      // data/application server modules load unchanged.
+      "server-only": resolve(__dirname, "tests/integration/server-only-stub.ts"),
       "@/app": resolve(__dirname, "app"),
       "@/domain": resolve(__dirname, "src/domain"),
       "@/application": resolve(__dirname, "src/application"),
