@@ -107,7 +107,8 @@ model ProductVariant {
   // Spec 2). It is NOT an operational quantity and there is no inventory table here.
   stockKey String?
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -245,4 +246,49 @@ model ProductRelationship {
   @@unique([productId, relatedProductId, type])
   @@index([productId])
   @@index([relatedProductId])
+}
+
+// ---------------------------------------------------------------------------
+// Spec 3 — Shopping Cart (guest-only). Persisted state is PURCHASE INTENT ONLY.
+// Catalogue remains the source of truth: product/variant name, current price,
+// availability, and image are resolved at read time (never stored as truth here).
+// No lifecycle status field (kept minimal). No operational inventory.
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id        String   @id @default(cuid())
+  // Opaque, server-issued guest token (stored in an http-only cookie).
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // 30-day sliding retention horizon; refreshed on cart activity.
+  expiresAt DateTime
+
+  items CartItem[]
+
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  variantId String
+  quantity  Int
+
+  // NON-AUTHORITATIVE change-detection reference only. MUST NOT be used to compute or
+  // display price/subtotal/availability/payable. Authoritative price is always
+  // ProductVariant.priceCents resolved at read time.
+  lastPresentedPriceCents Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  // Non-cascading: deleting a variant MUST NOT silently remove customer cart intent.
+  // Unresolvable/inactive variants are kept and flagged unavailable at read time (FR-7).
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, variantId])
+  @@index([cartId])
+  @@index([variantId])
 }

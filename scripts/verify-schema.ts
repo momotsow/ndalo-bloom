@@ -29,6 +29,9 @@ const EXPECTED_TABLES = [
   "Occasion",
   "ProductOccasion",
   "ProductRelationship",
+  // Spec 3 — Shopping Cart
+  "Cart",
+  "CartItem",
 ];
 
 // Tables that MUST NOT exist (no operational inventory/availability in Spec 2).
@@ -105,13 +108,66 @@ async function main(): Promise<void> {
     failures.push("ProductImage.alt must be NOT NULL (required alt text)");
   }
 
+  // ---- Spec 3 Shopping Cart schema assertions (REQUIRED, Task 20) ----
+  const cartIndexes = indexes; // reuse pg_indexes list
+  if (!/Cart_token_key/.test(cartIndexes)) {
+    failures.push("Cart.token must be UNIQUE (Cart_token_key missing)");
+  }
+  if (!/Cart_expiresAt_idx/.test(cartIndexes)) {
+    failures.push("Cart.expiresAt must be indexed (Cart_expiresAt_idx missing)");
+  }
+  if (!/CartItem_cartId_variantId_key/.test(cartIndexes)) {
+    failures.push(
+      "CartItem(cartId, variantId) must be UNIQUE (CartItem_cartId_variantId_key missing)",
+    );
+  }
+
+  // CartItem.lastPresentedPriceCents MUST be nullable.
+  const lppCol = await prisma.$queryRawUnsafe<Array<{ is_nullable: string }>>(
+    "SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='CartItem' AND column_name='lastPresentedPriceCents'",
+  );
+  if (lppCol.length === 0) {
+    failures.push("CartItem.lastPresentedPriceCents column is missing");
+  } else if (lppCol[0]?.is_nullable !== "YES") {
+    failures.push("CartItem.lastPresentedPriceCents must be nullable");
+  }
+
+  // CartItem -> ProductVariant FK exists with NON-CASCADING (Restrict/No Action) delete.
+  const fkRows = await prisma.$queryRawUnsafe<
+    Array<{ constraint_name: string; delete_rule: string; foreign_table: string }>
+  >(
+    `SELECT rc.constraint_name,
+            rc.delete_rule,
+            ccu.table_name AS foreign_table
+     FROM information_schema.referential_constraints rc
+     JOIN information_schema.table_constraints tc
+       ON tc.constraint_name = rc.constraint_name AND tc.table_schema = 'public'
+     JOIN information_schema.constraint_column_usage ccu
+       ON ccu.constraint_name = rc.constraint_name AND ccu.table_schema = 'public'
+     WHERE tc.table_name = 'CartItem' AND ccu.table_name = 'ProductVariant'`,
+  );
+  if (fkRows.length === 0) {
+    failures.push("CartItem -> ProductVariant FK is missing");
+  } else {
+    const rule = fkRows[0]!.delete_rule.toUpperCase();
+    // Restrict maps to 'RESTRICT' or 'NO ACTION'; MUST NOT be 'CASCADE'.
+    if (rule === "CASCADE" || rule === "SET NULL" || rule === "SET DEFAULT") {
+      failures.push(
+        `CartItem -> ProductVariant FK must be non-cascading (Restrict); found ${rule}`,
+      );
+    }
+  }
+
   if (failures.length > 0) {
     for (const f of failures) console.error(`SCHEMA CHECK FAILED: ${f}`);
     process.exitCode = 1;
   } else {
     console.log(
-      `Schema OK: ${EXPECTED_TABLES.length} catalogue tables present, pg_trgm enabled, ` +
-        "required constraints present, and no availability/inventory table.",
+      `Schema OK: ${EXPECTED_TABLES.length} tables present (incl. Cart/CartItem), ` +
+        "pg_trgm enabled, catalogue + cart constraints present (Cart.token unique, " +
+        "Cart.expiresAt indexed, CartItem(cartId,variantId) unique, " +
+        "CartItem.lastPresentedPriceCents nullable, CartItem->ProductVariant FK " +
+        "non-cascading), and no availability/inventory table.",
     );
   }
 }

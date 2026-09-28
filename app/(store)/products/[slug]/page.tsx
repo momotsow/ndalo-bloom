@@ -12,6 +12,7 @@ import { recommendationService } from "@/application/catalogue/recommendation-se
 import { toGalleryImages, toProductCard } from "@/application/catalogue/view-mappers";
 import { catalogueAnalytics } from "@/application/analytics";
 import { RelatedProductTracker } from "@/ui/catalogue/related-product-tracker";
+import { ProductAddToCart } from "./add-to-cart";
 import { loadPublicConfig } from "@/config/public";
 
 export async function generateMetadata({
@@ -144,6 +145,13 @@ export default async function ProductPage({
           <TextBlock title="The ritual" body={product.story} />
 
           <VariantSelector variants={product.variants} />
+
+          <ProductAddToCart
+            variantId={product.variants[0]?.id ?? ""}
+            disabled={
+              product.availability === "OUT_OF_STOCK" || product.variants.length === 0
+            }
+          />
 
           <TextBlock title="About" body={product.description} />
           <AttributeList title="Ingredients" items={product.ingredients} />

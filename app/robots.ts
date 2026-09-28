@@ -8,8 +8,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // Search result pages are not useful to index.
-        disallow: ["/search", "/dev/"],
+        // Search results and the private/transient cart are not indexable.
+        disallow: ["/search", "/cart", "/dev/"],
       },
     ],
     sitemap: `${base}/sitemap.xml`,

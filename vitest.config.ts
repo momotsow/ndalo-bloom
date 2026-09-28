@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // `server-only` is a no-op guard; alias it so server modules can be imported in
+      // the (non-bundled) test environment. Matches vitest.integration.config.ts.
+      "server-only": resolve(__dirname, "tests/integration/server-only-stub.ts"),
       "@/app": resolve(__dirname, "app"),
       "@/domain": resolve(__dirname, "src/domain"),
       "@/application": resolve(__dirname, "src/application"),

@@ -116,6 +116,30 @@ describe("architecture boundaries are enforced by the configured gate", () => {
     );
     expect(hasBoundaryError(messages)).toBe(true);
   });
+
+  it("cart UI cannot import Prisma", async () => {
+    const messages = await lintAs(
+      "src/ui/cart/__invalid_prisma__.tsx",
+      `import { PrismaClient } from "@prisma/client";\nexport const x = PrismaClient;\n`,
+    );
+    expect(hasBoundaryError(messages)).toBe(true);
+  });
+
+  it("cart UI cannot import a provider SDK", async () => {
+    const messages = await lintAs(
+      "src/ui/cart/__invalid_provider__.tsx",
+      `import { v2 } from "cloudinary";\nexport const x = v2;\n`,
+    );
+    expect(hasBoundaryError(messages)).toBe(true);
+  });
+
+  it("cart domain cannot import Prisma", async () => {
+    const messages = await lintAs(
+      "src/domain/cart/__invalid_prisma__.ts",
+      `import { PrismaClient } from "@prisma/client";\nexport const x = PrismaClient;\n`,
+    );
+    expect(hasBoundaryError(messages)).toBe(true);
+  });
 });
 
 describe("Better Auth is restricted to the auth layer", () => {
