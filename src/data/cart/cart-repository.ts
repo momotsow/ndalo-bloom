@@ -9,8 +9,9 @@ import { MAX_QUANTITY } from "@/domain/cart";
  *
  * Concurrency (Spec 3, §6): add-to-cart is a SINGLE ATOMIC upsert applying
  * `LEAST(quantity + excluded.quantity, MAX)` on conflict `(cartId, variantId)`. No
- * application-level read-modify-write. Each mutation runs in one transaction scoped to a
- * cart.
+ * application-level read-modify-write, so add-to-cart needs no interactive transaction —
+ * the upsert statement is self-locking. Multi-statement mutations that must be atomic
+ * (set/delete quantity + retention refresh) run inside one transaction scoped to a cart.
  */
 
 export interface CartRow {
@@ -65,8 +66,12 @@ export const cartRepository = {
 
   /**
    * Atomic add: insert the line at LEAST(requested, MAX); on conflict (cartId, variantId)
-   * set quantity = LEAST(existing + requested, MAX). Concurrency-safe (no lost updates).
-   * `expiresAt` is refreshed in the same transaction. Returns the resulting quantity so the
+   * set quantity = LEAST(existing + requested, MAX). Concurrency-safe (no lost updates) —
+   * this is a SINGLE atomic mutation (Design §6), NOT an application-level
+   * read-modify-write, so it needs no interactive transaction wrapper. The `INSERT … ON
+   * CONFLICT DO UPDATE … RETURNING` statement takes the necessary row lock on its own.
+   * `expiresAt` is refreshed as a separate statement (sliding retention is non-critical and
+   * need not be atomic with the quantity change). Returns the resulting quantity so the
    * caller can detect clamping.
    */
   async addItemAtomic(params: {
@@ -78,19 +83,17 @@ export const cartRepository = {
     const { cartId, variantId, requested, expiresAt } = params;
     const capped = Math.min(requested, MAX_QUANTITY);
 
-    return prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<Array<{ quantity: number }>>(Prisma.sql`
-        INSERT INTO "CartItem" ("id", "cartId", "variantId", "quantity", "createdAt", "updatedAt")
-        VALUES (gen_random_uuid()::text, ${cartId}, ${variantId}, ${capped}, now(), now())
-        ON CONFLICT ("cartId", "variantId")
-        DO UPDATE SET
-          "quantity" = LEAST("CartItem"."quantity" + ${requested}, ${MAX_QUANTITY}),
-          "updatedAt" = now()
-        RETURNING "quantity"
-      `);
-      await tx.cart.update({ where: { id: cartId }, data: { expiresAt } });
-      return { quantity: rows[0]?.quantity ?? capped };
-    });
+    const rows = await prisma.$queryRaw<Array<{ quantity: number }>>(Prisma.sql`
+      INSERT INTO "CartItem" ("id", "cartId", "variantId", "quantity", "createdAt", "updatedAt")
+      VALUES (gen_random_uuid()::text, ${cartId}, ${variantId}, ${capped}, now(), now())
+      ON CONFLICT ("cartId", "variantId")
+      DO UPDATE SET
+        "quantity" = LEAST("CartItem"."quantity" + ${requested}, ${MAX_QUANTITY}),
+        "updatedAt" = now()
+      RETURNING "quantity"
+    `);
+    await prisma.cart.update({ where: { id: cartId }, data: { expiresAt } });
+    return { quantity: rows[0]?.quantity ?? capped };
   },
 
   async setItemQuantity(params: {
